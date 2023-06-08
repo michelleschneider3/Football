@@ -10,9 +10,10 @@ public class Team implements Comparable<Team>{
     private int goalsDifference;
     private int points;
 
-    public Team (String name, int points) {
+    public Team (int id, String name) {
+        this.id = id;
         this.name = name;
-        this.points = points;
+        this.players = new ArrayList<>();
     }
     public boolean playerIsInTeam (Player player) {
         return this.players.contains(player);
@@ -36,6 +37,20 @@ public class Team implements Comparable<Team>{
 
     @Override
     public int compareTo(Team o) {
-        return this.points - o.points;
+        int result;
+        if (this.points-o.points != 0) {
+            result = this.points-o.points;
+        } else {
+            if (o.goalsDifference - this.goalsDifference != 0) {
+                result = o.goalsDifference - this.goalsDifference;
+            } else {
+                result = this.name.compareTo(o.name)*-1;
+            }
+        }
+        return result;
+    }
+
+    public void addPlayer (Player player) {
+        this.players.add(player);
     }
 }
