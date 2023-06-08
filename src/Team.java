@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class Team {
+public class Team implements Comparable<Team>{
     private int id;
     private String name;
     private ArrayList<Player> players;
@@ -35,15 +35,7 @@ public class Team {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Team team = (Team) o;
-        return name.equals(team.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name);
+    public int compareTo(Team o) {
+        return this.points - o.points;
     }
 }
