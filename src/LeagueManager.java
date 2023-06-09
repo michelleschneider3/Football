@@ -5,9 +5,11 @@ import java.util.stream.Collectors;
 public class LeagueManager {
     private ArrayList<Match> matches;
     private Set<Team> leagueStanding;
+    private int[] teamIds;
     public LeagueManager () {
         this.leagueStanding = new TreeSet<>(Collections.reverseOrder());
         this.getTeams();
+        this.playRound();
     }
 
     public List<Match> findMatchesByTeam (int teamId) {
@@ -55,6 +57,41 @@ public class LeagueManager {
         return currentPlayerId;
     }
 
+    private void playRound () {
+        this.teamIds = createArrayFromTeamIds();
+        int round = 0;
+        while (round < 9) {
+            for (int i = 0, j = this.teamIds.length-1; i < this.teamIds.length; i++, j--) {
+                if (j <= i) {
+                    round++;
+                    System.out.println();
+                    this.teamIds = shiftRight();
+                    break;
+                } else {
+                    System.out.print(" " + this.teamIds[i] + " VS " + this.teamIds[j]);
+                }
+            }
+        }
+    }
+
+    private int[] createArrayFromTeamIds () {
+        int[] result = new int[this.leagueStanding.size()];
+        int i = 0;
+        for (Team team : this.leagueStanding) {
+            result[i] = team.getId();
+            i++;
+        }
+        return result;
+    }
+
+    private int[] shiftRight () {
+        int[] result = new int[this.teamIds.length];
+        result[0] = this.teamIds[this.teamIds.length-1];
+        for (int i = 1; i < this.teamIds.length; i++) {
+            result[i] = this.teamIds[i-1];
+        }
+        return result;
+    }
 }
 
 
