@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Random;
 
 public class Team implements Comparable<Team>{
     private int id;
@@ -54,5 +55,28 @@ public class Team implements Comparable<Team>{
         this.players.add(player);
     }
 
+    public boolean matchesId (int id) {
+        return this.id == id;
+    }
 
+    public Player getRandomPlayer () {
+        Random random = new Random();
+        return this.players.get(random.nextInt(this.players.size()));
+    }
+
+    public void addPoints (int points) {
+        this.points += points;
+    }
+
+    public void addGoalsFor (int goalsFor) {
+        this.goalsFor += goalsFor;
+    }
+
+    public void addGoalsAgainst (int goalsAgainst) {
+        this.goalsAgainst += goalsAgainst;
+    }
+
+    public void calculateGoalsDifference () {
+        this.goalsDifference = this.goalsFor-this.goalsAgainst;
+    }
 }

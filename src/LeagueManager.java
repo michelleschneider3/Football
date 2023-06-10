@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class LeagueManager {
     private ArrayList<Match> matches;
@@ -8,8 +7,10 @@ public class LeagueManager {
     private int[] teamIds;
     public LeagueManager () {
         this.leagueStanding = new TreeSet<>(Collections.reverseOrder());
+        this.matches = new ArrayList<>();
         this.getTeams();
-        this.playRound();
+        this.createMatches();
+        startRound(0);
     }
 
     public List<Match> findMatchesByTeam (int teamId) {
@@ -57,18 +58,20 @@ public class LeagueManager {
         return currentPlayerId;
     }
 
-    private void playRound () {
+    private void createMatches() {
         this.teamIds = createArrayFromTeamIds();
         int round = 0;
+        int matchId = 1;
         while (round < 9) {
             for (int i = 0, j = this.teamIds.length-1; i < this.teamIds.length; i++, j--) {
                 if (j <= i) {
                     round++;
-                    System.out.println();
                     this.teamIds = shiftRight();
                     break;
                 } else {
-                    System.out.print(" " + this.teamIds[i] + " VS " + this.teamIds[j]);
+                    Match currentMatch = new Match(matchId, this.findTeamById(this.teamIds[i]), this.findTeamById(this.teamIds[j]));
+                    this.matches.add(currentMatch);
+                    matchId++;
                 }
             }
         }
@@ -92,6 +95,32 @@ public class LeagueManager {
         }
         return result;
     }
+
+    private Team findTeamById (int id) {
+        return this.leagueStanding.stream().filter(t -> t.matchesId(id)).findFirst().orElse(null);
+    }
+
+    private void startRound (int start) {
+        this.matches.stream().skip(start).limit(5).forEach(m -> {
+            System.out.println(m);
+            countDown(10);
+            m.playGame();
+        });
+    }
+
+    private void countDown (int count) {
+        if (count <= 0) {
+            return;
+        }
+        System.out.println(count);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        countDown(count - 1);
+    }
+
 }
 
 
