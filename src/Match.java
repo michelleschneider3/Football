@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -9,6 +8,8 @@ public class Match {
     private Team homeTeam;
     private Team awayTeam;
     private ArrayList<Goal> goals;
+    private boolean hasPlayed;
+
 
     public Match(int id, Team homeTeam, Team awayTeam) {
         this.id = id;
@@ -16,8 +17,12 @@ public class Match {
         this.awayTeam = awayTeam;
     }
 
-    public boolean matchesId (int teamId) {
-        return this.id == teamId;
+    public boolean hasTeam(int teamId) {
+        boolean result = false;
+        if (this.hasPlayed) {
+            result = this.homeTeam.matchesId(teamId) || this.awayTeam.matchesId(teamId);
+        }
+        return result;
     }
 
     public int getId() {
@@ -70,6 +75,7 @@ public class Match {
         String outPut = this.homeTeam.getName() + " " + homeGoals[0] + " : " + awayGoals[0] + " " + this.awayTeam.getName();
         System.out.println(outPut);
         this.goals.forEach(System.out::println);
+        this.hasPlayed = true;
     }
 
     private void organizeGoals (int homeGoals, int awayGoals) {
@@ -85,7 +91,7 @@ public class Match {
 
     @Override
     public String toString() {
-        return "Match: " + this.homeTeam.getName() + " VS " + this.awayTeam.getName();
+        return "Match: " + this.homeTeam.getName() + " VS " + this.awayTeam.getName() + "\n";
     }
 
 

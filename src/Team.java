@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Random;
 
-public class Team implements Comparable<Team>{
+public class Team implements Comparable<Team> {
     private int id;
     private String name;
     private ArrayList<Player> players;
@@ -11,12 +11,13 @@ public class Team implements Comparable<Team>{
     private int goalsDifference;
     private int points;
 
-    public Team (int id, String name) {
+    public Team(int id, String name) {
         this.id = id;
         this.name = name;
         this.players = new ArrayList<>();
     }
-    public boolean playerIsInTeam (Player player) {
+
+    public boolean playerIsInTeam(Player player) {
         return this.players.contains(player);
     }
 
@@ -39,44 +40,53 @@ public class Team implements Comparable<Team>{
     @Override
     public int compareTo(Team o) {
         int result;
-        if (this.points-o.points != 0) {
-            result = this.points-o.points;
+        if (this.points - o.points != 0) {
+            result = this.points - o.points;
         } else {
             if (o.goalsDifference - this.goalsDifference != 0) {
                 result = o.goalsDifference - this.goalsDifference;
             } else {
-                result = this.name.compareTo(o.name)*-1;
+                result = this.name.compareTo(o.name) * -1;
             }
         }
         return result;
     }
 
-    public void addPlayer (Player player) {
+    public void addPlayer(Player player) {
         this.players.add(player);
     }
 
-    public boolean matchesId (int id) {
+    public boolean matchesId(int id) {
         return this.id == id;
     }
 
-    public Player getRandomPlayer () {
+    public Player getRandomPlayer() {
         Random random = new Random();
         return this.players.get(random.nextInt(this.players.size()));
     }
 
-    public void addPoints (int points) {
+    public void addPoints(int points) {
         this.points += points;
     }
 
-    public void addGoalsFor (int goalsFor) {
+    public void addGoalsFor(int goalsFor) {
         this.goalsFor += goalsFor;
     }
 
-    public void addGoalsAgainst (int goalsAgainst) {
+    public void addGoalsAgainst(int goalsAgainst) {
         this.goalsAgainst += goalsAgainst;
     }
 
-    public void calculateGoalsDifference () {
-        this.goalsDifference = this.goalsFor-this.goalsAgainst;
+    public void calculateGoalsDifference() {
+        this.goalsDifference = this.goalsFor - this.goalsAgainst;
+    }
+
+    @Override
+    public String toString() {
+        return "\n" + this.name + " " + this.points + "pt " + this.goalsFor + "gf " + this.goalsAgainst + "ga " + this.goalsDifference + "gd";
+    }
+
+    public int getGoalsFor() {
+        return goalsFor;
     }
 }

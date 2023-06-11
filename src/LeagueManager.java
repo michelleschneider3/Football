@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class LeagueManager {
     private ArrayList<Match> matches;
@@ -10,15 +11,23 @@ public class LeagueManager {
         this.matches = new ArrayList<>();
         this.getTeams();
         this.createMatches();
-        startRound(0);
+        Stream.iterate(0, i -> i < 9, i -> i + 1).forEach(i -> {
+                this.startRound(5*i);
+                this.showMenu();
+        });
     }
 
     public List<Match> findMatchesByTeam (int teamId) {
         List<Match> matchesByTeam = new ArrayList<>();
         if (this.matches != null && !this.matches.isEmpty()) {
-            matchesByTeam = this.matches.stream().filter(m -> m.matchesId(teamId)).toList();
+            matchesByTeam = this.matches.stream().filter(m -> m.hasTeam(teamId)).toList();
         }
         return matchesByTeam;
+    }
+
+    List<Team> findTopScoringTeams(int n) {
+        List<Team> allTeams = new ArrayList<>(this.leagueStanding);
+        return allTeams.stream().sorted(Comparator.comparingInt(Team::getGoalsFor).reversed()).limit(n).toList();
     }
 
     private void getTeams () {
@@ -103,9 +112,11 @@ public class LeagueManager {
     private void startRound (int start) {
         this.matches.stream().skip(start).limit(5).forEach(m -> {
             System.out.println(m);
-            countDown(10);
+            countDown(3);
             m.playGame();
         });
+        this.leagueStanding = new TreeSet<>(this.leagueStanding).descendingSet();
+        System.out.println(this.leagueStanding);
     }
 
     private void countDown (int count) {
@@ -119,6 +130,44 @@ public class LeagueManager {
             throw new RuntimeException(e);
         }
         countDown(count - 1);
+    }
+
+    private void showMenu () {
+        Scanner scanner = new Scanner(System.in);
+        boolean endLoop = false;
+        do {
+            String outPut = "Choose from the options below:\n" +
+                    "1. Find Matches By Team\n" +
+                    "2. Find Top Scoring Teams\n" +
+                    "3. Find Players With At Least N Goals\n" +
+                    "4. Get Team By Position\n" +
+                    "5. Get Top Scorers\n" +
+                    "6. Skip";
+            System.out.println(outPut);
+            String userInput = scanner.nextLine();
+            try {
+                int option = Integer.parseInt(userInput.trim());
+                if (option>=1 && option<=6) {
+                    switch (option) {
+                        case 1 -> System.out.println(this.findMatchesByTeam(1));
+                        case 2 -> {
+                            System.out.println("Enter the limit of teams: ");
+                            int num = scanner.nextInt();
+                            scanner.nextLine();
+                            System.out.println(this.findTopScoringTeams(num));
+                        }
+                        case 3 -> System.out.println("3");
+                        case 4 -> System.out.println("4");
+                        case 5 -> System.out.println("5");
+                        case 6 -> endLoop = true;
+                    }
+                } else {
+                    System.out.println("Not valid option, try again");
+                }
+            } catch (Exception e) {
+                System.out.println("Invalid input, try again");
+            }
+        } while (!endLoop);
     }
 
 }
