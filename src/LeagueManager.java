@@ -145,16 +145,25 @@ public class LeagueManager {
                     "6. Skip";
             System.out.println(outPut);
             String userInput = scanner.nextLine();
+            int option;
             try {
-                int option = Integer.parseInt(userInput.trim());
+                 option = Integer.parseInt(userInput.trim());
+            }catch (Exception e) {
+                System.out.println("Invalid input, try again");
+                continue;
+            }
                 if (option>=1 && option<=6) {
                     switch (option) {
                         case 1 -> System.out.println(this.findMatchesByTeam(1));
                         case 2 -> {
                             System.out.println("Enter the limit of teams: ");
-                            int num = scanner.nextInt();
+                            try {
+                                int num = scanner.nextInt();
+                                System.out.println(this.findTopScoringTeams(num));
+                            }catch (Exception e) {
+                                System.out.println("Invalid input, try again");
+                            }
                             scanner.nextLine();
-                            System.out.println(this.findTopScoringTeams(num));
                         }
                         case 3 -> System.out.println("3");
                         case 4 -> System.out.println("4");
@@ -164,9 +173,6 @@ public class LeagueManager {
                 } else {
                     System.out.println("Not valid option, try again");
                 }
-            } catch (Exception e) {
-                System.out.println("Invalid input, try again");
-            }
         } while (!endLoop);
     }
 
