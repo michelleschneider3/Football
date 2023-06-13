@@ -1,5 +1,5 @@
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -9,6 +9,7 @@ public class Match {
     private Team awayTeam;
     private ArrayList<Goal> goals;
     private boolean hasPlayed;
+    private boolean used;
 
 
     public Match(int id, Team homeTeam, Team awayTeam) {
@@ -24,6 +25,7 @@ public class Match {
         }
         return result;
     }
+
 
     public int getId() {
         return id;
@@ -45,34 +47,39 @@ public class Match {
 
     public void playGame () {
         Random random = new Random();
-        int goals = random.nextInt(11);
-        int goalId = 1;
-        int[] homeGoals = new int[1];
-        int[] awayGoals = new int[1];
-        int[] goalMinute = new int[1];
+        int goals = random.nextInt(Constants.MAX_GOALS_PER_GAME);
+        AtomicInteger goalId = new AtomicInteger(0);
+        AtomicInteger homeGoals = new AtomicInteger(0);
+        AtomicInteger awayGoals = new AtomicInteger(0);
+        AtomicInteger goalMinute = new AtomicInteger(Constants.FIRST_FOOTBALL_MINUTE);
+
         this.goals = (ArrayList<Goal>) Stream.generate(() -> {
-            boolean isHomeGoal = random.nextInt(2) == 0;
+            boolean isHomeGoal = random.nextInt(Constants.ZERO_OR_ONE) == 0;
             Player scorer;
             if (isHomeGoal) {
                 scorer = this.homeTeam.getRandomPlayer();
-                homeGoals[0]++;
+                homeGoals.getAndIncrement();
             } else {
                 scorer = this.awayTeam.getRandomPlayer();
-                awayGoals[0]++;
+                awayGoals.getAndIncrement();
             }
-            goalMinute[0] = random.nextInt(goalMinute[0], 91);
-            return new Goal(goalId, goalMinute[0], scorer);
+            goalMinute.set(random.nextInt(goalMinute.get(), Constants.LAST_FOOTBALL_MINUTE+1));
+            goalId.getAndIncrement();
+
+            return new Goal(goalId.get(), goalMinute.get(), scorer);
         }).limit(goals).collect(Collectors.toList());
-        if (homeGoals[0]>awayGoals[0]) {
-            this.homeTeam.addPoints(3);
-        } else if (awayGoals[0]>homeGoals[0]) {
-            this.awayTeam.addPoints(3);
+
+        if (homeGoals.get() > awayGoals.get()) {
+            this.homeTeam.addPoints(Constants.WIN_POINTS);
+        } else if (awayGoals.get() > homeGoals.get()) {
+            this.awayTeam.addPoints(Constants.WIN_POINTS);
         } else {
-            this.awayTeam.addPoints(1);
-            this.homeTeam.addPoints(1);
+            this.awayTeam.addPoints(Constants.DRAW_POINTS);
+            this.homeTeam.addPoints(Constants.DRAW_POINTS);
         }
-        this.organizeGoals(homeGoals[0], awayGoals[0]);
-        String outPut = this.homeTeam.getName() + " " + homeGoals[0] + " : " + awayGoals[0] + " " + this.awayTeam.getName();
+
+        this.organizeGoals(homeGoals.get(), awayGoals.get());
+        String outPut = this.homeTeam.getName() + " " + homeGoals.get() + " : " + awayGoals.get() + " " + this.awayTeam.getName();
         System.out.println(outPut);
         this.goals.forEach(System.out::println);
         this.hasPlayed = true;
@@ -89,10 +96,23 @@ public class Match {
         team.calculateGoalsDifference();
     }
 
+
     @Override
-    public String toString() {
-        return "Match: " + this.homeTeam.getName() + " VS " + this.awayTeam.getName() + "\n";
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Match match = (Match) o;
+        return id == match.id;
     }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return this.homeTeam.getName() + " VS " + this.awayTeam.getName() + "\n";
+    }
 
 }

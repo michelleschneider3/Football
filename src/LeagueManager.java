@@ -1,18 +1,22 @@
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class LeagueManager {
     private ArrayList<Match> matches;
     private Set<Team> leagueStanding;
-    private int[] teamIds;
+
     public LeagueManager () {
         this.leagueStanding = new TreeSet<>(Collections.reverseOrder());
         this.matches = new ArrayList<>();
         this.getTeams();
         this.createMatches();
-        Stream.iterate(0, i -> i < 9, i -> i + 1).forEach(i -> {
-                this.startRound(5*i);
+        Stream.iterate(0, i -> i < Constants.ROUNDS_QUANTITY, i -> i + 1).forEach(i -> {
+                this.startRound(Constants.MATCHES_PER_ROUND*i);
                 this.showMenu();
         });
     }
@@ -20,7 +24,7 @@ public class LeagueManager {
     public List<Match> findMatchesByTeam (int teamId) {
         List<Match> matchesByTeam = new ArrayList<>();
         if (this.matches != null && !this.matches.isEmpty()) {
-            matchesByTeam = this.matches.stream().filter(m -> m.hasTeam(teamId)).toList();
+            matchesByTeam = matches.stream().filter(m -> m.hasTeam(teamId)).toList();
         }
         return matchesByTeam;
     }
@@ -30,87 +34,73 @@ public class LeagueManager {
         return allTeams.stream().sorted(Comparator.comparingInt(Team::getGoalsFor).reversed()).limit(n).toList();
     }
 
-    private void getTeams () {
+    private void getTeams(){
         File file = new File("src/teams.csv");
-        List<String> lines = new ArrayList<>();
 
         if (file.exists()) {
             try {
-                BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
-                int playerId = 1;
-                String currentLine;
-                while ((currentLine=bufferedReader.readLine()) != null) {
-                    String[] line = currentLine.trim().split(",");
-                    int id = Integer.parseInt(line[0].trim());
-                    Team currentTeam = new Team(id, line[1].trim());
-                    playerId = addPlayers(playerId, currentTeam);
-                    this.leagueStanding.add(currentTeam);
-                }
+                List<Team> teams = Files.lines(file.toPath())
+                        .map(line -> line.trim().split(","))
+                        .map(this::parseTeam).toList();
+
+                AtomicInteger playerId = new AtomicInteger(1);
+                teams.forEach(team -> {
+                    playerId.set(addPlayers(playerId.get(), team));
+                    this.leagueStanding.add(team);
+                });
 
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
             }
         } else {
-            System.out.println("there was an unexpected error");
+            System.out.println("There was an unexpected error");
         }
+    }
 
+    private Team parseTeam(String[] line) {
+        int id = Integer.parseInt(line[0].trim());
+        String name = line[1].trim();
+        return new Team(id, name);
     }
 
     private int addPlayers (int currentPlayerId, Team team) {
         Random random = new Random();
-        for (int i = 0; i < 15; i++) {
+        AtomicInteger currentPlayerIdAtom = new AtomicInteger(currentPlayerId);
+        IntStream.range(0,Constants.PLAYERS_PER_SQUAD_QUANTITY).forEach(i->{
             String name = Constants.FIRST_NAMES[random.nextInt(Constants.FIRST_NAMES.length)];
             String lastName = Constants.LAST_NAMES[random.nextInt(Constants.FIRST_NAMES.length)];
-            team.addPlayer(new Player(currentPlayerId, name, lastName));
-            currentPlayerId++;
-        }
-        return currentPlayerId;
+            team.addPlayer(new Player(currentPlayerIdAtom.get(), name, lastName));
+            currentPlayerIdAtom.getAndIncrement();
+        });
+        return currentPlayerIdAtom.get();
     }
 
     private void createMatches() {
-        this.teamIds = createArrayFromTeamIds();
-        int round = 0;
-        int matchId = 1;
-        while (round < 9) {
-            for (int i = 0, j = this.teamIds.length-1; i < this.teamIds.length; i++, j--) {
-                if (j <= i) {
-                    round++;
-                    this.teamIds = shiftRight();
-                    break;
-                } else {
-                    Match currentMatch = new Match(matchId, this.findTeamById(this.teamIds[i]), this.findTeamById(this.teamIds[j]));
-                    this.matches.add(currentMatch);
-                    matchId++;
-                }
-            }
-        }
+
+        List<Team> allTeams = new ArrayList<>(this.leagueStanding);
+
+        AtomicInteger matchId = new AtomicInteger(1);
+        AtomicInteger possibleMatches = new AtomicInteger(Constants.ROUNDS_QUANTITY);
+        AtomicInteger index = new AtomicInteger(0);
+
+        IntStream.range(0,Constants.ROUNDS_QUANTITY).forEach(round -> {
+            AtomicInteger otherIndexes = new AtomicInteger(index.get());
+            IntStream.range(0,possibleMatches.get()).forEach(match -> {
+                otherIndexes.getAndIncrement();
+                matches.add(new Match(matchId.get(),allTeams.get(index.get()),allTeams.get(otherIndexes.get())));
+                matchId.getAndIncrement();
+            });
+            possibleMatches.getAndDecrement();
+            index.getAndIncrement();
+        });
+
+        Collections.shuffle(this.matches);
+
     }
 
-    private int[] createArrayFromTeamIds () {
-        int[] result = new int[this.leagueStanding.size()];
-        int i = 0;
-        for (Team team : this.leagueStanding) {
-            result[i] = team.getId();
-            i++;
-        }
-        return result;
-    }
-
-    private int[] shiftRight () {
-        int[] result = new int[this.teamIds.length];
-        result[0] = this.teamIds[this.teamIds.length-1];
-        for (int i = 1; i < this.teamIds.length; i++) {
-            result[i] = this.teamIds[i-1];
-        }
-        return result;
-    }
-
-    private Team findTeamById (int id) {
-        return this.leagueStanding.stream().filter(t -> t.matchesId(id)).findFirst().orElse(null);
-    }
 
     private void startRound (int start) {
-        this.matches.stream().skip(start).limit(5).forEach(m -> {
+        this.matches.stream().skip(start).limit(Constants.MATCHES_PER_ROUND).forEach(m -> {
             System.out.println(m);
             countDown(3);
             m.playGame();
@@ -125,7 +115,7 @@ public class LeagueManager {
         }
         System.out.println(count);
         try {
-            Thread.sleep(1000);
+            Thread.sleep(Constants.ONE_SECOND);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

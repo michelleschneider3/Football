@@ -40,6 +40,7 @@ public class Team implements Comparable<Team> {
     @Override
     public int compareTo(Team o) {
         int result;
+        if(this.id == o.id) return 0;
         if (this.points - o.points != 0) {
             result = this.points - o.points;
         } else {
