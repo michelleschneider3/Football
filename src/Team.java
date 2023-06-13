@@ -1,7 +1,5 @@
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Random;
-
 public class Team implements Comparable<Team> {
     private int id;
     private String name;
@@ -31,10 +29,6 @@ public class Team implements Comparable<Team> {
 
     public String getName() {
         return name;
-    }
-
-    public void setPoints(int points) {
-        this.points = points;
     }
 
     @Override
@@ -90,4 +84,9 @@ public class Team implements Comparable<Team> {
     public int getGoalsFor() {
         return goalsFor;
     }
+
+    public void printTeamWithId () {
+        System.out.println(this.id + ") " + this.name);
+    }
+
 }

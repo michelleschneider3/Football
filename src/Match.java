@@ -16,6 +16,7 @@ public class Match {
         this.id = id;
         this.homeTeam = homeTeam;
         this.awayTeam = awayTeam;
+        this.goals = new ArrayList<>();
     }
 
     public boolean hasTeam(int teamId) {
@@ -26,23 +27,8 @@ public class Match {
         return result;
     }
 
-
-    public int getId() {
-        return id;
-    }
-
     public ArrayList<Goal> getGoals() {
         return goals;
-    }
-
-    public int getTeamIdOfScorer (Player scorer) {
-        int result = -1;
-        if (this.homeTeam.playerIsInTeam(scorer)) {
-            result = this.homeTeam.getId();
-        } else if (this.awayTeam.playerIsInTeam(scorer)) {
-            result = this.awayTeam.getId();
-        }
-        return result;
     }
 
     public void playGame () {
@@ -96,7 +82,6 @@ public class Match {
         team.calculateGoalsDifference();
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -115,4 +100,15 @@ public class Match {
         return this.homeTeam.getName() + " VS " + this.awayTeam.getName() + "\n";
     }
 
+    public boolean isUsed() {
+        return used;
+    }
+
+    public void setUsed(boolean used) {
+        this.used = used;
+    }
+
+    public boolean isHasPlayed() {
+        return hasPlayed;
+    }
 }

@@ -9,10 +9,12 @@ import java.util.stream.Stream;
 public class LeagueManager {
     private ArrayList<Match> matches;
     private Set<Team> leagueStanding;
+    private List<Player> topScorers;
 
     public LeagueManager () {
         this.leagueStanding = new TreeSet<>(Collections.reverseOrder());
         this.matches = new ArrayList<>();
+        this.topScorers = new ArrayList<>();
         this.getTeams();
         this.createMatches();
         Stream.iterate(0, i -> i < Constants.ROUNDS_QUANTITY, i -> i + 1).forEach(i -> {
@@ -36,7 +38,6 @@ public class LeagueManager {
 
     private void getTeams(){
         File file = new File("src/teams.csv");
-
         if (file.exists()) {
             try {
                 List<Team> teams = Files.lines(file.toPath())
@@ -58,8 +59,8 @@ public class LeagueManager {
     }
 
     private Team parseTeam(String[] line) {
-        int id = Integer.parseInt(line[0].trim());
-        String name = line[1].trim();
+        int id = Integer.parseInt(line[Constants.ID_INDEX].trim());
+        String name = line[Constants.NAME_INDEX].trim();
         return new Team(id, name);
     }
 
@@ -102,11 +103,51 @@ public class LeagueManager {
     private void startRound (int start) {
         this.matches.stream().skip(start).limit(Constants.MATCHES_PER_ROUND).forEach(m -> {
             System.out.println(m);
-            countDown(3);
+            countDown(Constants.COUNT_DOWN);
             m.playGame();
         });
         this.leagueStanding = new TreeSet<>(this.leagueStanding).descendingSet();
         System.out.println(this.leagueStanding);
+        generateTopScorers();
+    }
+
+    private void generateTopScorers () {
+        matches.stream()
+                .filter(match -> !match.isUsed() && match.isHasPlayed())
+                .flatMap(match -> {
+                    match.setUsed(true);
+                    return match.getGoals().stream();
+                })
+                .toList().forEach(goal -> {
+                    goal.getScorer().addGoal();
+                    if (!this.topScorers.contains(goal.getScorer())) {
+                        this.topScorers.add(goal.getScorer());
+                    }
+                });
+    }
+
+    private List<Player> findPlayersWithAtLeastNGoals (int n) {
+        List<Player> result = this.topScorers.stream().filter(scorer -> scorer.hasEnoughGoals(n)).toList();
+        if (result.isEmpty()) {
+            System.out.println("No players found");
+        }
+        return result;
+    }
+
+    private Team getTeamByPosition (int position) {
+        if (position<=0) {
+            return null;
+        }
+        return this.leagueStanding.stream().skip(position-1).findFirst().orElse(null);
+    }
+
+    public Map<Integer, Integer> getTopScorers(int n) {
+        if (n<=0) {
+            return null;
+        }
+        return this.topScorers.stream().sorted(Comparator.comparingInt(Player::getGoalCount).reversed()).limit(n).collect(Collectors.toMap(
+                Player::getId, Player::getGoalCount
+        ));
     }
 
     private void countDown (int count) {
@@ -126,14 +167,17 @@ public class LeagueManager {
         Scanner scanner = new Scanner(System.in);
         boolean endLoop = false;
         do {
-            String outPut = "Choose from the options below:\n" +
-                    "1. Find Matches By Team\n" +
-                    "2. Find Top Scoring Teams\n" +
-                    "3. Find Players With At Least N Goals\n" +
-                    "4. Get Team By Position\n" +
-                    "5. Get Top Scorers\n" +
-                    "6. Skip";
+            System.out.println("------------------------------------");
+            String outPut = """
+                    Choose from the options below:
+                    1. Find Matches By Team
+                    2. Find Top Scoring Teams
+                    3. Find Players With At Least N Goals
+                    4. Get Team By Position
+                    5. Get Top Scorers
+                    6. Skip""";
             System.out.println(outPut);
+            System.out.println("------------------------------------");
             String userInput = scanner.nextLine();
             int option;
             try {
@@ -142,28 +186,89 @@ public class LeagueManager {
                 System.out.println("Invalid input, try again");
                 continue;
             }
-                if (option>=1 && option<=6) {
+                if (option>=Constants.MINIMUM_OPTION && option<=Constants.MAXIMUM_OPTION) {
                     switch (option) {
-                        case 1 -> System.out.println(this.findMatchesByTeam(1));
-                        case 2 -> {
-                            System.out.println("Enter the limit of teams: ");
-                            try {
-                                int num = scanner.nextInt();
-                                System.out.println(this.findTopScoringTeams(num));
-                            }catch (Exception e) {
-                                System.out.println("Invalid input, try again");
+                        case (Constants.FIND_MATCHES_BY_TEAM)-> {
+                            this.leagueStanding.stream().sorted(Comparator.comparingInt(Team::getId)).forEach(Team::printTeamWithId);
+                            System.out.println("Enter the id of the team");
+                            String userNum = scanner.nextLine().trim();
+                            if (isNumber(userNum)) {
+                                int num = Integer.parseInt(userNum);
+                                if (num >= Constants.MINIMUM_NUMBER_OF_TEAMS && num <= Constants.MAXIMUM_NUMBER_OF_TEAMS) {
+                                    List<Match> playedMatches = this.findMatchesByTeam(num);
+                                    if (playedMatches.isEmpty()) {
+                                        System.out.println("The team didnt play matches yet");
+                                    } else {
+                                        playedMatches.forEach(System.out::println);
+                                    }
+                                } else {
+                                    System.out.println("The id doesn't exist");
+                                }
                             }
-                            scanner.nextLine();
                         }
-                        case 3 -> System.out.println("3");
-                        case 4 -> System.out.println("4");
-                        case 5 -> System.out.println("5");
-                        case 6 -> endLoop = true;
+                        case (Constants.FIND_TOP_SCORING_TEAMS) -> {
+                            System.out.println("Enter the limit of teams: ");
+                            String userNum = scanner.nextLine().trim();
+                            if (isNumber(userNum)) {
+                                System.out.println(this.findTopScoringTeams(Integer.parseInt(userNum)));
+                            }
+                        }
+                        case (Constants.FIND_PLAYERS_WITH_AT_LEAST_N_GOALS) -> {
+                            System.out.println("Enter the minimum number of goals: ");
+                            String userNum = scanner.nextLine().trim();
+                            if (isNumber(userNum)) {
+                                this.findPlayersWithAtLeastNGoals(Integer.parseInt(userNum)).stream().sorted(Comparator.comparingInt(Player::getGoalCount).reversed()).forEach(Player::printPlayerWithGoalCount);
+                            }
+                        }
+                        case (Constants.GET_TEAM_BY_POSITION) -> {
+                            System.out.println("Enter the position: ");
+                            String userNum = scanner.nextLine().trim();
+                            if (isNumber(userNum)) {
+                                Team result = this.getTeamByPosition(Integer.parseInt(userNum));
+                                if (result==null) {
+                                    System.out.println("Invalid position");
+                                } else {
+                                    System.out.println(result);
+                                }
+                            }
+                        }
+                        case (Constants.GET_TOP_SCORERS) -> {
+                            System.out.println("Enter the numbers of players: ");
+                            String userNum = scanner.nextLine().trim();
+                            if (isNumber(userNum)) {
+                                Map<Integer, Integer> result = getTopScorers(Integer.parseInt(userNum));
+                                if (result == null) {
+                                    System.out.println("Number of Players should be higher then 0");
+                                } else {
+                                    List<Integer> sortedById = result.entrySet().
+                                            stream().
+                                            sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).
+                                            map(Map.Entry::getKey).toList();
+                                    List<Player> sortedByName = new ArrayList<>();
+                                    sortedById.forEach(id -> {
+                                        sortedByName.add(this.topScorers.stream().filter(player -> player.matchesId(id)).findFirst().orElse(null));
+                                    });
+                                    sortedByName.stream().sorted(Comparator.comparingInt(Player::getGoalCount).reversed()).forEach(Player::printPlayerWithGoalCount);
+                                }
+                            }
+                        }
+                        case (Constants.SKIP) -> endLoop = true;
                     }
                 } else {
                     System.out.println("Not valid option, try again");
                 }
         } while (!endLoop);
+    }
+
+    private boolean isNumber (String text) {
+        boolean result = false;
+        try {
+            Integer.parseInt(text.trim());
+            result = true;
+        } catch (Exception e) {
+            System.out.println("Invalid input, Try again");
+        }
+        return result;
     }
 
 }
